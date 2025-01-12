@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DDC Number Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/particles.js/2.0.0/particles.min.js"></script>
+    <style>
+        #particles-js {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .5; }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .gradient-border {
+            border: double 2px transparent;
+            border-radius: 0.5rem;
+            background-image: linear-gradient(white, white), 
+                            linear-gradient(to right, #4f46e5, #06b6d4);
+            background-origin: border-box;
+            background-clip: padding-box, border-box;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500">
+    <div id="particles-js"></div>
+
+    <div class="container mx-auto px-4 py-8 md:py-12 relative">
+        <div class="max-w-4xl mx-auto">
+            <!-- Main Card -->
+            <div class="glass rounded-2xl shadow-2xl p-6 md:p-8 fade-in">
+                <!-- Header -->
+                <div class="text-center mb-8">
+                    <h1 class="text-3xl md:text-4xl font-bold bg-gradient-to-r from-indigo-600 to-cyan-600 bg-clip-text text-transparent">
+                        DDC Number Generator
+                    </h1>
+                    <p class="text-gray-600 mt-2">Intelligent Dewey Decimal Classification using AI</p>
+                </div>
+
+                <!-- Error Alert -->
+                <div id="error-alert" class="hidden mb-6 bg-red-50 border-l-4 border-red-500 p-4 rounded-lg fade-in">
+                    <div class="flex items-center">
+                        <svg class="h-5 w-5 text-red-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span id="error-message" class="text-red-700"></span>
+                    </div>
+                </div>
+
+                <!-- Input Form -->
+                <form id="ddc-form" class="space-y-6">
+                    <!-- API Key Input -->
+                    <div class="gradient-border p-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <label class="text-sm font-medium text-gray-700">API Key</label>
+                            <div class="flex space-x-2">
+                                <button type="button" id="save-api-key" 
+                                    class="text-sm text-indigo-600 hover:text-indigo-800 hidden">
+                                    Save Key
+                                </button>
+                                <button type="button" id="remove-api-key" 
+                                    class="text-sm text-red-600 hover:text-red-800 hidden">
+                                    Remove Saved Key
+                                </button>
+                            </div>
+                        </div>
+                        <div class="relative">
+                            <input type="password" id="api-key" 
+                                class="w-full p-3 rounded-lg bg-white border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                                placeholder="Enter your Deepseek API key">
+                            <button type="button" id="toggle-api-key" 
+                                class="absolute right-3 top-3 p-1 rounded-full hover:bg-gray-100 transition-all">
+                                <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                </svg>
+                            </button>
+                        </div>
+                        <p class="mt-1 text-sm text-gray-500">Your API key is stored securely in your browser.</p>
+                    </div>
+
+                    <!-- Text Input -->
+                    <div class="gradient-border p-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Text to Classify</label>
+                        <div class="relative">
+                            <textarea id="input-text" rows="4"
+                                class="w-full p-3 rounded-lg bg-white border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all pr-12"
+                                placeholder="Enter the text you want to classify or click the microphone to speak..."></textarea>
+                            <button type="button" id="speech-btn" 
+                                class="absolute right-3 top-3 p-2 rounded-full hover:bg-gray-100 transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <svg id="mic-icon" class="h-6 w-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                        d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path>
+                                </svg>
+                            </button>
+                        </div>
+                        <!-- Speech Recognition Status -->
+                        <div id="speech-status" class="hidden mt-2 text-sm">
+                            <div class="flex items-center space-x-2">
+                                <div class="animate-pulse h-2 w-2 rounded-full bg-indigo-500"></div>
+                                <span class="text-indigo-600">Listening...</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Processing Status -->
+                    <div id="processing-status" class="hidden">
+                        <div class="bg-indigo-50 rounded-lg p-4">
+                            <div class="flex items-center justify-center space-x-3">
+                                <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-500"></div>
+                                <span class="text-indigo-600 font-medium">Processing...</span>
+                            </div>
+                            <div class="mt-3">
+                                <div class="h-2 bg-indigo-100 rounded-full overflow-hidden">
+                                    <div id="progress-bar" class="h-full bg-indigo-500 transition-all duration-500" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Results -->
+                    <div id="results" class="hidden fade-in">
+                        <div class="bg-gradient-to-r from-indigo-50 to-cyan-50 rounded-lg p-6">
+                            <div class="flex items-center mb-4">
+                                <svg class="h-6 w-6 text-indigo-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                                </svg>
+                                <h3 class="text-xl font-semibold text-gray-800">Classification Results</h3>
+                            </div>
+
+                            <div class="space-y-4">
+                                <div>
+                                    <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+                                        <span id="ddc-number" class="text-2xl font-bold text-indigo-600 mb-2 md:mb-0"></span>
+                                        <span id="confidence" class="px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800"></span>
+                                    </div>
+                                    <p id="ddc-description" class="text-gray-600 mt-2"></p>
+                                </div>
+
+                                <div class="border-t border-gray-200 pt-4 mt-4">
+                                    <h4 class="text-sm font-medium text-gray-500 mb-3">Processing Statistics</h4>
+                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div class="bg-white rounded-lg p-3 shadow-sm">
+                                            <p class="text-xs text-gray-500">Input Tokens</p>
+                                            <p id="input-tokens" class="text-lg font-semibold text-indigo-600">0</p>
+                                        </div>
+                                        <div class="bg-white rounded-lg p-3 shadow-sm">
+                                            <p class="text-xs text-gray-500">Output Tokens</p>
+                                            <p id="output-tokens" class="text-lg font-semibold text-indigo-600">0</p>
+                                        </div>
+                                        <div class="bg-white rounded-lg p-3 shadow-sm">
+                                            <p class="text-xs text-gray-500">Total Tokens</p>
+                                            <p id="total-tokens" class="text-lg font-semibold text-indigo-600">0</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Generate Button -->
+                    <button type="submit" 
+                        class="w-full bg-gradient-to-r from-indigo-600 to-cyan-600 text-white py-4 px-6 rounded-lg text-lg font-medium hover:from-indigo-700 hover:to-cyan-700 transition-all focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                        Generate DDC Number
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize particles.js
+        particlesJS('particles-js',
+            {
+                "particles": {
+                    "number": {
+                        "value": 80,
+                        "density": {
+                            "enable": true,
+                            "value_area": 800
+                        }
+                    },
+                    "color": {
+                        "value": "#ffffff"
+                    },
+                    "shape": {
+                        "type": "circle"
+                    },
+                    "opacity": {
+                        "value": 0.5,
+                        "random": false
+                    },
+                    "size": {
+                        "value": 3,
+                        "random": true
+                    },
+                    "line_linked": {
+                        "enable": true,
+                        "distance": 150,
+                        "color": "#ffffff",
+                        "opacity": 0.4,
+                        "width": 1
+                    },
+                    "move": {
+                        "enable": true,
+                        "speed": 2,
+                        "direction": "none",
+                        "random": false,
+                        "straight": false,
+                        "out_mode": "out",
+                        "bounce": false
+                    }
+                },
+                "interactivity": {
+                    "detect_on": "canvas",
+                    "events": {
+                        "onhover": {
+                            "enable": true,
+                            "mode": "repulse"
+                        },
+                        "resize": true
+                    }
+                },
+                "retina_detect": true
+            }
+        );
+
+        // API Key Management
+        const API_KEY_STORAGE_KEY = 'ddc_api_key';
+        const apiKeyInput = document.getElementById('api-key');
+        const saveApiKeyBtn = document.getElementById('save-api-key');
+        const removeApiKeyBtn = document.getElementById('remove-api-key');
+        const toggleApiKeyBtn = document.getElementById('toggle-api-key');
+
+        // Load saved API key
+        function loadSavedApiKey() {
+            try {
+                const savedKey = localStorage.getItem(API_KEY_STORAGE_KEY);
+                if (savedKey) {
+                    apiKeyInput.value = savedKey;
+                    removeApiKeyBtn.classList.remove('hidden');
+                }
+            } catch (e) {
+                console.error('Error loading API key:', e);
+            }
+        }
+
+        // Save API key
+        function saveApiKey() {
+            try {
+                const key = apiKeyInput.value.trim();
+                if (key) {
+                    localStorage.setItem(API_KEY_STORAGE_KEY, key);
+                    showSuccessMessage('API key saved successfully');
+                    saveApiKeyBtn.classList.add('hidden');
+                    removeApiKeyBtn.classList.remove('hidden');
+                }
+            } catch (e) {
+                console.error('Error saving API key:', e);
+                showError('Failed to save API key');
+            }
+        }
+
+        // Remove saved API key
+        function removeSavedApiKey() {
+            try {
+                localStorage.removeItem(API_KEY_STORAGE_KEY);
+                apiKeyInput.value = '';
+                showSuccessMessage('API key removed');
+                removeApiKeyBtn.classList.add('hidden');
+            } catch (e) {
+                console.error('Error removing API key:', e);
+                showError('Failed to remove API key');
+            }
+        }
+
+        // Toggle API key visibility
+        function toggleApiKeyVisibility() {
+            const type = apiKeyInput.type === 'password' ? 'text' : 'password';
+            apiKeyInput.type = type;
+        }
+
+        // Show success message
+        function showSuccessMessage(message) {
+            const alert = document.createElement('div');
+            alert.className = 'fixed bottom-4 right-4 bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded shadow-lg fade-in';
+            alert.innerHTML = message;
+            document.body.appendChild(alert);
+            setTimeout(() => alert.remove(), 3000);
+        }
+
+        // Event listeners
+        apiKeyInput.addEventListener('input', () => {
+            const hasValue = apiKeyInput.value.trim().length > 0;
+            const isSaved = apiKeyInput.value === localStorage.getItem(API_KEY_STORAGE_KEY);
+            saveApiKeyBtn.classList.toggle('hidden', !hasValue || isSaved);
+        });
+
+        saveApiKeyBtn.addEventListener('click', saveApiKey);
+        removeApiKeyBtn.addEventListener('click', removeSavedApiKey);
+        toggleApiKeyBtn.addEventListener('click', toggleApiKeyVisibility);
+
+        // Load saved API key on page load
+        loadSavedApiKey();
+
+        // Form submission handler
+        document.getElementById('ddc-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const apiKey = document.getElementById('api-key').value.trim();
+            const text = document.getElementById('input-text').value.trim();
+            const submitButton = this.querySelector('button[type="submit"]');
+            const processingStatus = document.getElementById('processing-status');
+            const results = document.getElementById('results');
+            const errorAlert = document.getElementById('error-alert');
+            const progressBar = document.getElementById('progress-bar');
+
+            if (!apiKey || !text) {
+                showError('Please provide both text and API key');
+                return;
+            }
+
+            // Start processing
+            submitButton.disabled = true;
+            errorAlert.classList.add('hidden');
+            processingStatus.classList.remove('hidden');
+            results.classList.add('hidden');
+            
+            // Animate progress bar
+            progressBar.style.width = '0%';
+            setTimeout(() => progressBar.style.width = '30%', 500);
+            setTimeout(() => progressBar.style.width = '60%', 1500);
+            setTimeout(() => progressBar.style.width = '90%', 2500);
+
+            try {
+                const response = await fetch('/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ text, api_key: apiKey })
+                });
+
+                const data = await response.json();
+
+                if (!data.success) {
+                    throw new Error(data.error);
+                }
+
+                // Update results
+                document.getElementById('ddc-number').textContent = 
+                    `DDC ${data.data.classification.ddc_number}`;
+                document.getElementById('ddc-description').textContent = 
+                    data.data.classification.description;
+                document.getElementById('confidence').textContent = 'High Confidence';
+                document.getElementById('input-tokens').textContent = 
+                    data.data.usage.prompt_tokens;
+                document.getElementById('output-tokens').textContent = 
+                    data.data.usage.completion_tokens;
+                document.getElementById('total-tokens').textContent = 
+                    data.data.usage.total_tokens;
+
+                // Show results
+                results.classList.remove('hidden');
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                submitButton.disabled = false;
+                processingStatus.classList.add('hidden');
+                progressBar.style.width = '100%';
+            }
+        });
+
+        // Speech Recognition Setup
+        let recognition = null;
+        try {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+        } catch (e) {
+            console.warn('Speech recognition is not supported:', e);
+        }
+
+        const speechBtn = document.getElementById('speech-btn');
+        const speechStatus = document.getElementById('speech-status');
+        const micIcon = document.getElementById('mic-icon');
+        const inputText = document.getElementById('input-text');
+        let isListening = false;
+
+        if (speechBtn && recognition) {
+            speechBtn.addEventListener('click', toggleSpeechRecognition);
+
+            recognition.onresult = (event) => {
+                const results = Array.from(event.results);
+                const transcript = results.map(result => result[0].transcript).join(' ');
+                
+                // Update textarea with the latest transcript
+                inputText.value = transcript;
+            };
+
+            recognition.onstart = () => {
+                isListening = true;
+                speechStatus.classList.remove('hidden');
+                micIcon.classList.add('text-indigo-500');
+            };
+
+            recognition.onend = () => {
+                isListening = false;
+                speechStatus.classList.add('hidden');
+                micIcon.classList.remove('text-indigo-500');
+            };
+
+            recognition.onerror = (event) => {
+                console.error('Speech recognition error:', event.error);
+                stopSpeechRecognition();
+                showError('Speech recognition error: ' + event.error);
+            };
+        } else {
+            // Hide speech button if not supported
+            if (speechBtn) {
+                speechBtn.style.display = 'none';
+            }
+        }
+
+        function toggleSpeechRecognition() {
+            if (!recognition) return;
+
+            if (isListening) {
+                stopSpeechRecognition();
+            } else {
+                startSpeechRecognition();
+            }
+        }
+
+        function startSpeechRecognition() {
+            try {
+                recognition.start();
+            } catch (e) {
+                console.error('Speech recognition start error:', e);
+                showError('Could not start speech recognition');
+            }
+        }
+
+        function stopSpeechRecognition() {
+            try {
+                recognition.stop();
+            } catch (e) {
+                console.error('Speech recognition stop error:', e);
+            }
+        }
+
+        function showError(message) {
+            const errorAlert = document.getElementById('error-alert');
+            document.getElementById('error-message').textContent = message;
+            errorAlert.classList.remove('hidden');
+            errorAlert.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        // Stop speech recognition when submitting form
+        document.getElementById('ddc-form').addEventListener('submit', () => {
+            if (isListening) {
+                stopSpeechRecognition();
+            }
+        });
+    </script>
+</body>
+</html>
