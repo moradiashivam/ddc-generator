@@ -142,26 +142,6 @@ git checkout -b feature/your-feature-name
 ```bash
 python -m pytest tests/
 ```
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Speech Recognition Not Working**
-   - Ensure you're using a supported browser (Chrome/Edge)
-   - Check microphone permissions
-   - Verify HTTPS connection (required for speech API)
-
-2. **API Key Issues**
-   - Verify key is valid and active
-   - Check for proper key format
-   - Clear browser cache if issues persist
-
-3. **Classification Errors**
-   - Ensure text input is clear and specific
-   - Check API response in browser console
-   - Verify internet connection
-
 ## Contributing
 
 1. Fork the repository
