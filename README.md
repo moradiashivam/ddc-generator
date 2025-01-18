@@ -4,6 +4,14 @@ A modern web application that generates Dewey Decimal Classification (DDC) numbe
 
 ![DDC Generator Screenshot](Screenshot.jpg)
 
+# DDC Number Generator
+
+A modern web application that generates Dewey Decimal Classification (DDC) numbers using the Deepseek AI API. Built with Flask and featuring a responsive, interactive UI.
+
+Developed by Shivam Vallabhbhai Moradia under the guidance of Dr. Meghna Vyas, Associate Professor, Sardar Patel University, Vallabhvidhyanagar.
+
+![DDC Generator Screenshot](Screenshot.jpg)
+
 ## Features
 
 ### Core Functionality
@@ -142,6 +150,7 @@ git checkout -b feature/your-feature-name
 ```bash
 python -m pytest tests/
 ```
+
 ## Contributing
 
 1. Fork the repository
@@ -154,8 +163,19 @@ python -m pytest tests/
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Acknowledgments
+## Authors and Acknowledgments
 
+### Developer
+- Shivam Vallabhbhai Moradia
+- College Librarian
+- St. Xavier's College (Autonomous) Ahmedabad
+
+### Project Mentor
+- Dr. Meghna Vyas
+- Associate Professor
+- Sardar Patel University, Vallabhvidhyanagar
+
+### Technologies Used
 - Deepseek API for AI classification
 - Flask for the web framework
 - Tailwind CSS for styling
@@ -163,6 +183,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Contact
 
-- Author: Shivam Vallabhbhai Moradia
 - Email: moradiashivam@gmail.com
+- LinkedIn: [Shivam Moradia](https://www.linkedin.com/in/shivam-moradia-5a3703103)
 - GitHub: [@moradiashivam](https://github.com/moradiashivam)
