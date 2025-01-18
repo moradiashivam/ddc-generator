@@ -8,13 +8,18 @@ A modern web application that generates Dewey Decimal Classification (DDC) numbe
 
 A modern web application that generates Dewey Decimal Classification (DDC) numbers using the Deepseek AI API. Built with Flask and featuring a responsive, interactive UI.
 
-Developed by Shivam Vallabhbhai Moradia 
-under the guidance of 
-Dr. Meghna Vyas, 
-Associate Professor, 
-PG Department of Library and Information Science
-Sardar Patel University, 
-Vallabhvidhyanagar.
+## Authors and Acknowledgments
+
+### Developer
+- Shivam Vallabhbhai Moradia
+- College Librarian
+- St. Xavier's College (Autonomous) Ahmedabad
+
+### Project Mentor
+- Dr. Meghna Vyas
+- Associate Professor
+- PG Department of Library and Information Sciences
+- Sardar Patel University, Vallabhvidhyanagar
 
 ![DDC Generator Screenshot](Screenshot.jpg)
 
