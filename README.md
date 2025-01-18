@@ -2,12 +2,6 @@
 
 A modern web application that generates Dewey Decimal Classification (DDC) numbers using the Deepseek AI API. Built with Flask and featuring a responsive, interactive UI.
 
-![DDC Generator Screenshot](Screenshot.jpg)
-
-# DDC Number Generator
-
-A modern web application that generates Dewey Decimal Classification (DDC) numbers using the Deepseek AI API. Built with Flask and featuring a responsive, interactive UI.
-
 ## Authors and Acknowledgments
 
 ### Developer
