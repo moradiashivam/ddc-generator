@@ -26,7 +26,7 @@ Before you begin, ensure you have the following installed:
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/ddc-generator.git
+   git clone https://github.com/moradiashivam/ddc-generator-2.git
    cd ddc-generator
    ```
 
