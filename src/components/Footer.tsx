@@ -1,11 +1,23 @@
 import React from 'react';
-import { Github, Linkedin, Mail } from 'lucide-react';
+import { Github, Linkedin, Mail, Lock } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export function Footer() {
   return (
     <footer className="w-full py-12 mt-12 bg-black/30 backdrop-blur-sm">
       <div className="max-w-3xl mx-auto px-4">
         <div className="text-center space-y-12">
+          {/* Admin Login Link */}
+          <div className="absolute left-4 bottom-4">
+            <Link
+              to="/admin/login"
+              className="flex items-center space-x-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors text-white/60 hover:text-white"
+            >
+              <Lock className="w-4 h-4" />
+              <span className="text-sm">Admin</span>
+            </Link>
+          </div>
+
           {/* Developer Section */}
           <div className="space-y-2">
             <div className="inline-block">
@@ -79,6 +91,21 @@ export function Footer() {
                 title="Email"
               >
                 <Mail className="w-5 h-5" />
+              </a>
+            </div>
+          </div>
+
+          {/* Visitor Counter */}
+          <div className="pt-6 border-t border-white/10">
+            <div className="flex justify-center">
+              <a href="https://www.freecounterstat.com" title="web counter">
+                <img 
+                  src="https://counter2.optistats.ovh/private/freecounterstat.php?c=j1p6g7tcprpesez12j1e8yjsct67ud92" 
+                  border="0" 
+                  title="web counter" 
+                  alt="web counter"
+                  className="opacity-80 hover:opacity-100 transition-opacity"
+                />
               </a>
             </div>
           </div>

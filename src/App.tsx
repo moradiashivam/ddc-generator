@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Library, Github } from 'lucide-react';
-import { useAuth } from '@clerk/clerk-react';
+import { Library, Github, LogOut, User } from 'lucide-react';
 import { TextInput } from './components/TextInput';
 import { ResultCard } from './components/ResultCard';
 import { History } from './components/History';
@@ -14,18 +13,25 @@ import { Disclaimer } from './components/Disclaimer';
 import { ApiDocs } from './components/ApiDocs';
 import { BulkClassification } from './components/BulkClassification';
 import { Feedback } from './components/Feedback';
-import { AuthButton } from './components/AuthButton';
+import { ExportCSV } from './components/ExportCSV';
+import { NewsletterSubscribe } from './components/NewsletterSubscribe';
+import { TestimonialSlider } from './components/TestimonialSlider';
+import { AuthModal } from './components/AuthModal';
 import { useTheme } from './context/ThemeContext';
 import { classifyText, getApiKey } from './lib/deepseek';
 import { saveClassificationLog } from './lib/storage';
+import { supabase } from './lib/supabase';
 import type { DDCResult, HistoryItem, ErrorState } from './types';
+import toast from 'react-hot-toast';
 
 const HISTORY_STORAGE_KEY = 'ddc_history';
 const NOTIFICATION_SHOWN_KEY = 'github_notification_shown';
 
 function App() {
   const { theme } = useTheme();
-  const { isSignedIn } = useAuth();
+  const [user, setUser] = useState<any>(null);
+  const [isSignedIn, setIsSignedIn] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const [text, setText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<DDCResult | null>(null);
@@ -45,12 +51,44 @@ function App() {
     text: 'Check out this amazing DDC Number Generator that uses AI to classify library materials!'
   };
 
+  // Check authentication status on mount
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          setUser(session.user);
+          setIsSignedIn(true);
+        }
+      } catch (error) {
+        console.error('Error checking auth:', error);
+      }
+    };
+
+    checkAuth();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (session?.user) {
+          setUser(session.user);
+          setIsSignedIn(true);
+        } else {
+          setUser(null);
+          setIsSignedIn(false);
+        }
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, []);
+
   useEffect(() => {
     localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(history));
   }, [history]);
 
   const handleSubmit = async () => {
-    if (!text.trim() || !hasApiKey || !isSignedIn) return;
+    if (!text.trim() || !hasApiKey) return;
 
     setIsLoading(true);
     setError(null);
@@ -61,12 +99,19 @@ function App() {
       const ddc = JSON.parse(response) as DDCResult;
       setResult(ddc);
 
-      // Save to classification log
-      saveClassificationLog({
-        inputText: text,
-        number: ddc.number,
-        category: ddc.category
-      });
+      // Save to classification log only if user is signed in
+      if (isSignedIn) {
+        try {
+          await saveClassificationLog({
+            inputText: text,
+            number: ddc.number,
+            category: ddc.category
+          });
+        } catch (saveError) {
+          console.error('Failed to save classification log:', saveError);
+          // Don't show error to user as the classification still worked
+        }
+      }
 
       if (showGithubPopup) {
         localStorage.setItem(NOTIFICATION_SHOWN_KEY, 'true');
@@ -82,7 +127,7 @@ function App() {
   };
 
   const handleSave = () => {
-    if (!result || !isSignedIn) return;
+    if (!result) return;
 
     const historyItem: HistoryItem = {
       ...result,
@@ -95,23 +140,66 @@ function App() {
   };
 
   const handleDeleteHistory = (id: string) => {
-    if (!isSignedIn) return;
     setHistory(prev => prev.filter(item => item.id !== id));
   };
 
   const handleClearHistory = () => {
-    if (!isSignedIn) return;
     if (window.confirm('Are you sure you want to clear all history? This cannot be undone.')) {
       setHistory([]);
     }
+  };
+
+  const handleSignIn = () => {
+    setShowAuthModal(true);
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut();
+      toast.success('Signed out successfully');
+    } catch (error) {
+      toast.error('Failed to sign out');
+    }
+  };
+
+  const handleAuthSuccess = () => {
+    setShowAuthModal(false);
   };
 
   return (
     <div className={`min-h-screen relative ${theme}`}>
       <ParticlesBackground />
       <ThemeToggle />
-      <AuthButton />
       <Feedback />
+      
+      {/* Auth Button */}
+      <div className="fixed top-4 left-4 z-50">
+        {isSignedIn && user ? (
+          <div className="flex items-center space-x-3 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-full px-4 py-2 shadow-lg">
+            <div className="flex items-center space-x-2">
+              <User className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                {user.user_metadata?.name || user.email}
+              </span>
+            </div>
+            <button
+              onClick={handleSignOut}
+              className="p-1 text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 transition-colors"
+              title="Sign Out"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={handleSignIn}
+            className="flex items-center space-x-2 px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-lg text-white transition-all duration-200 hover:scale-105"
+          >
+            <User className="w-5 h-5" />
+            <span>Sign In</span>
+          </button>
+        )}
+      </div>
       
       {showGithubPopup && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 animate-slide-down">
@@ -172,11 +260,9 @@ function App() {
 
         {/* Main Content */}
         <div className="space-y-6">
-          {isSignedIn && (
-            <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-2xl shadow-lg p-6">
-              <ApiKeyConfig onSave={() => setHasApiKey(true)} />
-            </div>
-          )}
+          <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-2xl shadow-lg p-6">
+            <ApiKeyConfig onSave={() => setHasApiKey(true)} />
+          </div>
 
           {/* Add Disclaimer here */}
           <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-2xl shadow-lg p-6">
@@ -189,7 +275,9 @@ function App() {
               onChange={setText}
               onSubmit={handleSubmit}
               isLoading={isLoading}
-              disabled={!hasApiKey || !isSignedIn}
+              disabled={!hasApiKey}
+              isSignedIn={isSignedIn}
+              onSignIn={handleSignIn}
             />
 
             {error && (
@@ -230,10 +318,13 @@ function App() {
             )}
           </div>
 
+          {/* CSV Export Component */}
+          {isSignedIn && <ExportCSV />}
+
           {/* Bulk Classification */}
           {isSignedIn && <BulkClassification />}
 
-          {isSignedIn && history.length > 0 && (
+          {history.length > 0 && (
             <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-2xl shadow-lg p-6">
               <History 
                 items={history} 
@@ -273,8 +364,19 @@ function App() {
         </a>
       </div>
 
+      <div className="max-w-3xl mx-auto px-4 mb-8">
+        <NewsletterSubscribe />
+      </div>
       <Features />
+      <TestimonialSlider />
       <Footer />
+
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        onSuccess={handleAuthSuccess}
+      />
     </div>
   );
 }

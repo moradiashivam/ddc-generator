@@ -15,10 +15,14 @@ interface ProcessedRow {
 }
 
 // Maximum number of concurrent requests
-const MAX_CONCURRENT = 5;
+const MAX_CONCURRENT = 3; // Reduced from 5 to 3 to avoid rate limiting
 
 // Delay between chunks to prevent rate limiting
-const CHUNK_DELAY = 1000; // 1 second
+const CHUNK_DELAY = 3000; // Increased from 2000ms to 3000ms (3 seconds)
+
+// Retry configuration
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 2000; // 2 seconds
 
 export function BulkClassification() {
   const [isProcessing, setIsProcessing] = useState(false);
@@ -27,31 +31,56 @@ export function BulkClassification() {
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Process a single title with retry logic
+  const processTitle = async (title: string, retryCount = 0): Promise<ProcessedRow> => {
+    try {
+      const response = await classifyText(title);
+      let ddc;
+      try {
+        ddc = JSON.parse(response);
+      } catch (e) {
+        throw new Error('Failed to parse classification result');
+      }
+      return {
+        title,
+        ddc
+      };
+    } catch (err) {
+      // Retry logic
+      if (retryCount < MAX_RETRIES) {
+        console.log(`Retrying classification for "${title}" (Attempt ${retryCount + 1}/${MAX_RETRIES})`);
+        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+        return processTitle(title, retryCount + 1);
+      }
+      
+      return {
+        title,
+        error: err instanceof Error ? err.message : 'Classification failed after multiple attempts'
+      };
+    }
+  };
+
   // Process titles in chunks with error handling
   const processChunk = async (titles: string[]): Promise<ProcessedRow[]> => {
     try {
-      const results = await Promise.all(
-        titles.map(async (title) => {
-          try {
-            const response = await classifyText(title);
-            let ddc;
-            try {
-              ddc = JSON.parse(response);
-            } catch (e) {
-              throw new Error('Failed to parse classification result');
-            }
-            return {
-              title,
-              ddc
-            };
-          } catch (err) {
-            return {
-              title,
-              error: err instanceof Error ? err.message : 'Classification failed'
-            };
-          }
-        })
-      );
+      // Process titles sequentially within a chunk to avoid overwhelming the API
+      const results: ProcessedRow[] = [];
+      
+      for (const title of titles) {
+        try {
+          const result = await processTitle(title);
+          results.push(result);
+          
+          // Small delay between individual requests within a chunk
+          await new Promise(resolve => setTimeout(resolve, 500));
+        } catch (e) {
+          results.push({
+            title,
+            error: e instanceof Error ? e.message : 'Failed to process item'
+          });
+        }
+      }
+      
       return results;
     } catch (e) {
       console.error('Chunk processing error:', e);
@@ -76,40 +105,71 @@ export function BulkClassification() {
 
       if (file.name.endsWith('.csv')) {
         // Parse CSV
-        const result = await new Promise<Papa.ParseResult<any>>((resolve) => {
+        const result = await new Promise<Papa.ParseResult<any>>((resolve, reject) => {
           Papa.parse(file, {
             header: true,
             complete: resolve,
             error: (error) => {
-              throw new Error(`CSV parsing error: ${error.message}`);
+              reject(new Error(`CSV parsing error: ${error.message}`));
             }
           });
         });
-        data = result.data.map(row => ({ title: row.title }));
+        
+        // Safely extract titles from the parsed data
+        if (result && result.data && Array.isArray(result.data)) {
+          data = result.data
+            .filter(row => row && typeof row === 'object')
+            .map(row => ({ 
+              title: (row.title || row.Title || '').toString().trim() // Handle both lowercase and uppercase column names
+            }))
+            .filter(row => row.title && row.title.length > 0); // Filter out empty titles
+        } else {
+          throw new Error('Invalid CSV format: No data rows found');
+        }
       } else if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
         // Parse Excel
         try {
           const buffer = await file.arrayBuffer();
           const workbook = XLSX.read(buffer);
+          
+          if (!workbook || !workbook.SheetNames || workbook.SheetNames.length === 0) {
+            throw new Error('Invalid Excel file: No sheets found');
+          }
+          
           const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+          if (!worksheet) {
+            throw new Error('Invalid Excel file: Empty worksheet');
+          }
+          
           const jsonData = XLSX.utils.sheet_to_json(worksheet);
-          data = jsonData.map((row: any) => ({ title: row.title }));
+          
+          if (!Array.isArray(jsonData)) {
+            throw new Error('Failed to parse Excel data');
+          }
+          
+          data = jsonData
+            .filter(row => row && typeof row === 'object')
+            .map((row: any) => ({ 
+              title: ((row.title || row.Title || '')).toString().trim() // Handle both lowercase and uppercase column names
+            }))
+            .filter(row => row.title && row.title.length > 0); // Filter out empty titles
         } catch (e) {
-          throw new Error('Failed to parse Excel file');
+          console.error('Excel parsing error:', e);
+          throw new Error('Failed to parse Excel file: ' + (e instanceof Error ? e.message : 'Unknown error'));
         }
       } else {
         throw new Error('Unsupported file format. Please upload a CSV or Excel file.');
       }
 
       // Filter out rows without titles
-      data = data.filter(row => row.title && typeof row.title === 'string' && row.title.trim());
+      data = data.filter(row => row.title && row.title.trim() !== '');
 
       if (data.length === 0) {
-        throw new Error('No valid titles found in the file. Please ensure your file has a "title" column.');
+        throw new Error('No valid titles found in the file. Please ensure your file has a "title" or "Title" column with non-empty values.');
       }
 
       // Process data in chunks
-      const titles = data.map(row => row.title.trim());
+      const titles = data.map(row => row.title);
       const chunks: string[][] = [];
       
       // Create chunks of MAX_CONCURRENT size
@@ -121,22 +181,34 @@ export function BulkClassification() {
       
       // Process each chunk with delay
       for (let i = 0; i < chunks.length; i++) {
-        const chunkResults = await processChunk(chunks[i]);
-        processedChunks.push(...chunkResults);
-        
-        // Update progress
-        setProgress(((i + 1) / chunks.length) * 100);
-        
-        // Update processed data in real-time
-        setProcessedData([...processedChunks]);
+        try {
+          const chunkResults = await processChunk(chunks[i]);
+          processedChunks.push(...chunkResults);
+          
+          // Update progress
+          setProgress(((i + 1) / chunks.length) * 100);
+          
+          // Update processed data in real-time
+          setProcessedData([...processedChunks]);
 
-        // Add delay between chunks to prevent rate limiting
-        if (i < chunks.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, CHUNK_DELAY));
+          // Add delay between chunks to prevent rate limiting
+          if (i < chunks.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, CHUNK_DELAY));
+          }
+        } catch (chunkError) {
+          console.error('Error processing chunk:', chunkError);
+          // Continue with next chunk instead of failing the entire process
+          const errorResults = chunks[i].map(title => ({
+            title,
+            error: 'Failed to process: API connection error'
+          }));
+          processedChunks.push(...errorResults);
+          setProcessedData([...processedChunks]);
         }
       }
 
     } catch (err) {
+      console.error('File processing error:', err);
       setError(err instanceof Error ? err.message : 'Failed to process file');
     } finally {
       setIsProcessing(false);
@@ -148,12 +220,17 @@ export function BulkClassification() {
 
   const downloadResults = () => {
     try {
+      if (!processedData || processedData.length === 0) {
+        setError('No data to download');
+        return;
+      }
+      
       // Create workbook
       const wb = XLSX.utils.book_new();
       
       // Convert data to worksheet format
       const wsData = processedData.map(row => ({
-        'Title': row.title,
+        'Title': row.title || '',
         'DDC Number': row.ddc?.number || '',
         'Category': row.ddc?.category || '',
         'Description': row.ddc?.description || '',
@@ -169,7 +246,7 @@ export function BulkClassification() {
       XLSX.writeFile(wb, 'ddc_classifications.xlsx');
     } catch (e) {
       console.error('Download error:', e);
-      setError('Failed to download results');
+      setError('Failed to download results: ' + (e instanceof Error ? e.message : 'Unknown error'));
     }
   };
 
@@ -182,7 +259,7 @@ export function BulkClassification() {
         </h2>
         <p className="text-gray-600 dark:text-gray-300">
           Upload a CSV or Excel file with a "title" column to classify multiple items at once.
-          Processing is optimized with concurrent requests for faster results.
+          Processing is optimized with automatic retries for more reliable results.
         </p>
       </div>
 
@@ -232,7 +309,7 @@ export function BulkClassification() {
               <div className="flex items-center space-x-2">
                 <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
                 <span className="text-gray-600 dark:text-gray-400">
-                  Processing {processedData.length} of {Math.ceil(progress)} titles concurrently...
+                  Processing {processedData.length} of {Math.ceil(progress)} titles...
                 </span>
               </div>
               <span className="font-medium text-gray-900 dark:text-gray-100">{Math.round(progress)}%</span>

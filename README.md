@@ -1,32 +1,52 @@
 # DDC Number Generator
 
-An AI-powered Dewey Decimal Classification (DDC) number generator built with React, Vite, and Clerk authentication.
+An AI-powered Dewey Decimal Classification (DDC) number generator built with React, Vite, TypeScript, and Supabase. This application helps librarians and information professionals automatically classify library materials using artificial intelligence.
 
 ![DDC Generator Screenshot](https://images.unsplash.com/photo-1507842217343-583bb7270b66?w=1200&h=600&fit=crop)
 
-## Features
+## 🚀 Features
 
-- 🤖 AI-powered DDC classification
-- 🔐 Secure authentication with Clerk
+- 🤖 AI-powered DDC classification using DeepSeek API
+- 🔐 User authentication with Clerk
+- 📊 Classification history tracking with Supabase
+- 🎯 High accuracy classifications with confidence scores
+- 📱 Responsive design with Tailwind CSS
 - 🌓 Dark/Light mode support
-- 📊 Classification history tracking
-- 🎯 High accuracy classifications
-- 📱 Responsive design
 - 🔍 Bulk classification support
 - 🎤 Voice input support
+- 📈 Admin dashboard with analytics
+- 💬 Testimonials system
+- 📧 Newsletter subscription
+- 📊 CSV/Excel export capabilities
 
-## Prerequisites
+## 🛠️ Tech Stack
+
+- **Frontend Framework**: React 18 with TypeScript
+- **Build Tool**: Vite
+- **Styling**: Tailwind CSS
+- **Authentication**: Clerk
+- **Database**: Supabase (PostgreSQL)
+- **State Management**: React Context
+- **Icons**: Lucide React
+- **Charts**: Chart.js with react-chartjs-2
+- **Tables**: TanStack Table
+- **File Handling**: XLSX, PapaParse
+- **Drag & Drop**: react-dropzone, @dnd-kit
+- **Toast Notifications**: react-hot-toast
+- **Animations**: tsparticles
+
+## 📋 Prerequisites
 
 Before you begin, ensure you have the following installed:
 - Node.js (v18 or higher)
 - npm (v9 or higher)
 - Git
 
-## Local Development Setup
+## 🚀 Getting Started
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/moradiashivam/ddc-generator.git
+   git clone https://github.com/yourusername/ddc-generator.git
    cd ddc-generator
    ```
 
@@ -35,160 +55,147 @@ Before you begin, ensure you have the following installed:
    npm install
    ```
 
-3. Create a `.env` file in the root directory:
-   ```bash
-   cp .env.example .env
+3. Set up environment variables:
+   Create a `.env` file in the root directory with the following variables:
+   ```env
+   VITE_CLERK_PUBLISHABLE_KEY=your_clerk_key
+   VITE_SUPABASE_URL=your_supabase_url
+   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
    ```
 
-4. Set up Clerk Authentication:
-   - Go to [Clerk Dashboard](https://dashboard.clerk.dev)
-   - Create a new application
-   - Copy your Publishable Key
-   - Update the `.env` file with your key:
-     ```
-     VITE_CLERK_PUBLISHABLE_KEY=your_publishable_key
-     ```
-
-5. Start the development server:
+4. Start the development server:
    ```bash
    npm run dev
    ```
 
-6. Open [http://localhost:5173](http://localhost:5173) in your browser
+5. Open [http://localhost:5173](http://localhost:5173) in your browser
 
-## Ubuntu Server Deployment
+## 📁 Project Structure
 
-### Server Prerequisites
+```
+ddc-generator/
+├── src/
+│   ├── components/     # Reusable UI components
+│   ├── context/       # React context providers
+│   ├── lib/           # Utility functions and API clients
+│   ├── pages/         # Page components and routes
+│   └── types/         # TypeScript type definitions
+├── supabase/
+│   └── migrations/    # Database migration files
+├── public/           # Static assets
+└── package.json      # Project dependencies
+```
 
-1. Update system packages:
-   ```bash
-   sudo apt update && sudo apt upgrade -y
-   ```
+## 🔐 Authentication
 
-2. Install Node.js and npm:
-   ```bash
-   curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-   sudo apt install -y nodejs
-   ```
+The application uses Clerk for authentication with the following features:
+- Email/password authentication
+- User profile management
+- Admin role management
+- Session handling
 
-3. Install nginx:
-   ```bash
-   sudo apt install nginx -y
-   ```
+## 💾 Database Schema
 
-4. Configure firewall:
-   ```bash
-   sudo ufw allow 'Nginx Full'
-   sudo ufw allow OpenSSH
-   sudo ufw enable
-   ```
+### Classifications Table
+```sql
+CREATE TABLE classifications (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  input_text text NOT NULL,
+  ddc_number text NOT NULL,
+  category text NOT NULL,
+  confidence_score float DEFAULT 1.0,
+  user_id uuid REFERENCES auth.users(id),
+  created_at timestamptz DEFAULT now()
+);
+```
 
-### Application Deployment
+### Testimonials Table
+```sql
+CREATE TABLE testimonials (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  designation text NOT NULL,
+  text text NOT NULL,
+  image text NOT NULL,
+  "order" integer DEFAULT 0,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+```
 
-1. Create application directory:
-   ```bash
-   sudo mkdir -p /var/www/ddc-generator
-   sudo chown -R $USER:$USER /var/www/ddc-generator
-   ```
+### Subscribers Table
+```sql
+CREATE TABLE subscribers (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  email text UNIQUE NOT NULL,
+  subscribed boolean DEFAULT true,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+```
 
-2. Clone the repository:
-   ```bash
-   cd /var/www/ddc-generator
-   git clone https://github.com/moradiashivam/ddc-generator.git
-   ```
+## 👥 User Roles
 
-3. Install dependencies and build:
-   ```bash
-   npm install
-   npm run build
-   ```
+- **Public Users**: Can view the application and submit testimonials
+- **Authenticated Users**: Can generate DDC classifications and maintain history
+- **Admin**: Full access to dashboard, user management, and content management
 
-4. Create environment file:
-   ```bash
-   cp .env.example .env
-   nano .env
-   ```
-   Update with your Clerk credentials:
-   ```
-   VITE_CLERK_PUBLISHABLE_KEY=your_publishable_key
-   ```
+## 🔒 Security Features
 
-5. Configure Nginx:
-   ```bash
-   sudo nano /etc/nginx/sites-available/ddc-generator
-   ```
-   Add the following configuration:
-   ```nginx
-   server {
-       listen 80;
-       server_name your-domain.com;
-       root /var/www/ddc-generator/dist;
-       index index.html;
+- Row Level Security (RLS) in Supabase
+- JWT-based authentication
+- Environment variable protection
+- CORS configuration
+- Content Security Policy headers
 
-       location / {
-           try_files $uri $uri/ /index.html;
-       }
+## 📊 Admin Dashboard
 
-       # Security headers
-       add_header X-Frame-Options "SAMEORIGIN";
-       add_header X-XSS-Protection "1; mode=block";
-       add_header X-Content-Type-Options "nosniff";
-   }
-   ```
+The admin dashboard provides:
+- User management
+- Classification analytics
+- Testimonial management
+- Newsletter subscriber management
+- Export capabilities
 
-6. Enable the site:
-   ```bash
-   sudo ln -s /etc/nginx/sites-available/ddc-generator /etc/nginx/sites-enabled/
-   sudo nginx -t
-   sudo systemctl restart nginx
-   ```
+## 🚀 Deployment
 
-7. Set up SSL with Certbot:
-   ```bash
-   sudo apt install certbot python3-certbot-nginx -y
-   sudo certbot --nginx -d your-domain.com
-   ```
+The application is configured for deployment on Netlify:
 
-### Clerk Authentication Setup
+```toml
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+  force = true
 
-1. Configure Clerk Application:
-   - Go to [Clerk Dashboard](https://dashboard.clerk.dev)
-   - Create a new application
-   - In "JWT Templates", add your domain
-   - Configure OAuth providers (Google, GitHub, etc.)
-   - Set allowed origins to include your domain
-   - Update environment variables with new credentials
+[build]
+  publish = "dist"
+  command = "npm run build"
 
-2. Update Production Environment:
-   ```bash
-   nano /var/www/ddc-generator/.env
-   ```
-   Add your production Clerk keys:
-   ```
-   VITE_CLERK_PUBLISHABLE_KEY=your_production_key
-   ```
+[build.environment]
+  NODE_VERSION = "18"
+```
 
-3. Rebuild the application:
-   ```bash
-   npm run build
-   ```
+## 📝 API Documentation
 
-## Environment Variables
+The application provides a RESTful API for DDC classification:
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| VITE_CLERK_PUBLISHABLE_KEY | Clerk public key for authentication | Yes |
+```typescript
+// Example API call
+const response = await fetch(`${SUPABASE_URL}/rest/v1/classifications`, {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+  },
+  body: JSON.stringify({
+    input_text: 'Text to classify',
+    user_id: 'authenticated_user_id'
+  })
+});
+```
 
-## Security Considerations
-
-1. Always use environment variables for sensitive data
-2. Keep your Clerk keys secure and never commit them to version control
-3. Regularly update dependencies for security patches
-4. Use HTTPS in production
-5. Implement rate limiting on your server
-6. Regular security audits and updates
-
-## Contributing
+## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch
@@ -196,17 +203,25 @@ Before you begin, ensure you have the following installed:
 4. Push to the branch
 5. Create a Pull Request
 
-## License
+## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Support
+## 👨‍💻 Author
 
-For support, please open an issue in the GitHub repository or contact the development team.
+**Shivam Moradia**  
+College Librarian  
+St. Xavier's College (Autonomous) Ahmedabad
 
-## Acknowledgments
+## 🙏 Acknowledgments
 
+- Project Mentor: Dr. Meghna Vyas
 - Built with [React](https://reactjs.org/)
 - Authentication by [Clerk](https://clerk.dev/)
+- Database by [Supabase](https://supabase.com/)
 - Icons from [Lucide](https://lucide.dev/)
 - Styling with [Tailwind CSS](https://tailwindcss.com/)
+
+## 📞 Support
+
+For support, please open an issue in the GitHub repository or contact the development team at moradiashivam@gmail.com.

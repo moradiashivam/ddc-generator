@@ -24,7 +24,7 @@ export function ApiDocs() {
     "messages": [
       {
         "role": "system",
-        "content": "You are a DDC classification expert. Always respond with valid JSON containing number, category, and description fields."
+        "content": "You are a DDC classification expert. Analyze the provided text and generate a precise Dewey Decimal Classification number, category, and description. Focus on accuracy and adherence to DDC 23rd Edition standards."
       },
       {
         "role": "user",
@@ -45,7 +45,7 @@ export function ApiDocs() {
     "messages": [
       {
         "role": "system",
-        "content": "You are a DDC classification expert. Always respond with valid JSON containing number, category, and description fields."
+        "content": "You are a DDC classification expert. Analyze the provided text and generate a precise Dewey Decimal Classification number, category, and description. Focus on accuracy and adherence to DDC 23rd Edition standards."
       },
       {
         "role": "user",
@@ -70,7 +70,11 @@ def classify_text(api_key: str, text: str, provider: str = 'deepseek') -> dict:
         "Content-Type": "application/json"
     }
     
-    prompt = f"""Analyze the following text and provide a Dewey Decimal Classification (DDC). 
+    system_prompt = """You are a DDC classification expert. Analyze the provided text and 
+    generate a precise Dewey Decimal Classification number, category, and description. 
+    Focus on accuracy and adherence to DDC 23rd Edition standards."""
+    
+    user_prompt = f"""Analyze the following text and provide a Dewey Decimal Classification (DDC). 
     Return ONLY a JSON object with this exact structure, no other text:
     {{
       "number": "XXX.XX",
@@ -85,11 +89,11 @@ def classify_text(api_key: str, text: str, provider: str = 'deepseek') -> dict:
         "messages": [
             {
                 "role": "system",
-                "content": "You are a DDC classification expert. Always respond with valid JSON containing number, category, and description fields."
+                "content": system_prompt
             },
             {
                 "role": "user",
-                "content": prompt
+                "content": user_prompt
             }
         ],
         "temperature": 0.3,
@@ -124,7 +128,11 @@ async function classifyText(apiKey: string, text: string, provider: 'deepseek' |
     ? 'deepseek-r1-distill-llama-70b'
     : 'deepseek-chat';
 
-  const prompt = \`Analyze the following text and provide a Dewey Decimal Classification (DDC). 
+  const systemPrompt = \`You are a DDC classification expert. Analyze the provided text and 
+  generate a precise Dewey Decimal Classification number, category, and description. 
+  Focus on accuracy and adherence to DDC 23rd Edition standards.\`;
+
+  const userPrompt = \`Analyze the following text and provide a Dewey Decimal Classification (DDC). 
   Return ONLY a JSON object with this exact structure, no other text:
   {
     "number": "XXX.XX",
@@ -140,11 +148,11 @@ async function classifyText(apiKey: string, text: string, provider: 'deepseek' |
       messages: [
         {
           role: 'system',
-          content: 'You are a DDC classification expert. Always respond with valid JSON containing number, category, and description fields.'
+          content: systemPrompt
         },
         { 
           role: 'user', 
-          content: prompt 
+          content: userPrompt 
         }
       ],
       temperature: 0.3,

@@ -1,6 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { Send, Mic, Copy, Loader2, LogIn } from 'lucide-react';
-import { useAuth, SignInButton } from '@clerk/clerk-react';
+import { Send, Mic, Copy, Loader2 } from 'lucide-react';
 
 interface TextInputProps {
   value: string;
@@ -8,12 +7,13 @@ interface TextInputProps {
   onSubmit: () => void;
   isLoading: boolean;
   disabled?: boolean;
+  isSignedIn: boolean;
+  onSignIn: () => void;
 }
 
-export function TextInput({ value, onChange, onSubmit, isLoading, disabled }: TextInputProps) {
+export function TextInput({ value, onChange, onSubmit, isLoading, disabled, isSignedIn, onSignIn }: TextInputProps) {
   const [isListening, setIsListening] = useState(false);
   const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
-  const { isSignedIn } = useAuth();
 
   const startListening = useCallback(() => {
     if (!isSignedIn) return;
@@ -69,30 +69,6 @@ export function TextInput({ value, onChange, onSubmit, isLoading, disabled }: Te
       console.error('Failed to copy text:', err);
     }
   };
-
-  if (!isSignedIn) {
-    return (
-      <div className="w-full space-y-6">
-        <div className="relative">
-          <textarea
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder="Sign in to start classifying texts"
-            disabled={true}
-            className="w-full h-40 p-4 pr-24 text-gray-800 bg-gray-100 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-xl resize-none cursor-not-allowed text-gray-500 dark:text-gray-400"
-          />
-          <div className="absolute inset-0 flex items-center justify-center bg-black/5 dark:bg-black/20 backdrop-blur-sm rounded-xl">
-            <SignInButton mode="modal">
-              <button className="flex items-center space-x-3 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg">
-                <LogIn className="w-5 h-5" />
-                <span className="font-medium">Sign in to Use DDC Generator</span>
-              </button>
-            </SignInButton>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="w-full space-y-2">

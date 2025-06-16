@@ -22,7 +22,6 @@ export function setProvider(provider: AIProvider): void {
 }
 
 export function validateApiKey(key: string): boolean {
-  // Basic validation: check if it's a non-empty string with at least 32 characters
   return typeof key === 'string' && key.trim().length >= 32;
 }
 
@@ -51,130 +50,276 @@ function createClient(): OpenAI | null {
   });
 }
 
-// Extract JSON from potential markdown code blocks
-function extractJSON(content: string): string {
-  // Remove markdown code block syntax if present
-  const jsonMatch = content.match(/```(?:json)?\s*({[\s\S]*?})\s*```/);
-  if (jsonMatch) {
-    return jsonMatch[1].trim();
-  }
-  return content.trim();
-}
-
-// Validate DDC result structure
-function validateDDCResult(data: any): boolean {
-  if (!data || typeof data !== 'object') {
-    console.error('Invalid DDC result: not an object', data);
-    return false;
-  }
-
-  const { number, category, description } = data;
-
-  if (typeof number !== 'string' || !number.trim()) {
-    console.error('Invalid DDC result: missing or invalid number', { number });
-    return false;
-  }
-
-  if (typeof category !== 'string' || !category.trim()) {
-    console.error('Invalid DDC result: missing or invalid category', { category });
-    return false;
-  }
-
-  if (typeof description !== 'string' || !description.trim()) {
-    console.error('Invalid DDC result: missing or invalid description', { description });
-    return false;
-  }
-
-  // Validates DDC number format (e.g., "020.50")
-  const dccNumberPattern = /^\d{3}(\.\d{1,2})?$/;
-  if (!dccNumberPattern.test(number.trim())) {
-    console.error('Invalid DDC result: number format incorrect', { number });
-    return false;
-  }
-
-  return true;
-}
-
-// Format DDC number to ensure consistency
-function formatDDCNumber(number: string): string {
+function extractDDCResult(content: string): any {
   try {
-    const cleaned = number.trim().replace(/[^\d.]/g, '');
-    const [main, decimal = ''] = cleaned.split('.');
-    const paddedMain = main.padStart(3, '0');
-    const paddedDecimal = decimal.padEnd(2, '0');
-    return `${paddedMain}.${paddedDecimal}`;
+    // Debug log
+    console.log('Attempting to parse content:', content);
+    
+    // Try to clean up the content first
+    const cleanContent = content.replace(/[\r\n]+/g, ' ').trim();
+    
+    // Helper function to validate and return parsed object
+    const validateAndReturn = (obj: any) => {
+      if (isValidDDCFormat(obj)) {
+        console.log('Valid DDC format found:', obj);
+        return obj;
+      }
+      return null;
+    };
+
+    // First try to parse the content directly
+    try {
+      const parsed = JSON.parse(cleanContent);
+      const result = validateAndReturn(parsed);
+      if (result) return result;
+    } catch (e) {
+      console.log('Direct parse failed:', e);
+    }
+
+    // Try to parse block scope format
+    try {
+      const blockScopeMatch = cleanContent.match(/Block Scope:\s*({[^}]+})/);
+      if (blockScopeMatch) {
+        const blockScope = JSON.parse(blockScopeMatch[1]);
+        if (blockScope.n && Array.isArray(blockScope.n)) {
+          for (const item of blockScope.n) {
+            const parsed = typeof item === 'string' ? JSON.parse(item) : item;
+            const result = validateAndReturn(parsed);
+            if (result) return result;
+          }
+        }
+      }
+    } catch (e) {
+      console.log('Block scope parse failed:', e);
+    }
+
+    // Try to parse local scope format
+    try {
+      const localScopeMatch = cleanContent.match(/Local Scope block\s*:\s*({[^}]+})/);
+      if (localScopeMatch) {
+        const localScope = JSON.parse(localScopeMatch[1]);
+        if (localScope.t) {
+          const parsed = typeof localScope.t === 'string' ? JSON.parse(localScope.t) : localScope.t;
+          const result = validateAndReturn(parsed);
+          if (result) return result;
+        }
+      }
+    } catch (e) {
+      console.log('Local scope parse failed:', e);
+    }
+
+    // Try to find any JSON objects in the text
+    const jsonPattern = /\{(?:[^{}]|(?:\{[^{}]*\}))*\}/g;
+    const matches = cleanContent.match(jsonPattern);
+    if (matches) {
+      for (const match of matches) {
+        try {
+          const parsed = JSON.parse(match);
+          const result = validateAndReturn(parsed);
+          if (result) return result;
+        } catch (e) {
+          console.log('JSON pattern match parse failed:', e);
+        }
+      }
+    }
+
+    console.error('No valid DDC format found in content:', cleanContent);
+    throw new Error('Could not extract valid DDC classification. Please try again.');
   } catch (e) {
-    console.error('Error formatting DDC number:', e);
-    throw new Error('Invalid DDC number format');
+    console.error('DDC extraction error:', e);
+    throw new Error('Could not generate a valid DDC classification. Please try rephrasing your text.');
+  }
+}
+
+function isValidDDCFormat(obj: any): boolean {
+  try {
+    // Log the object for debugging
+    console.log('Validating object:', JSON.stringify(obj));
+    
+    // Basic type check
+    if (!obj || typeof obj !== 'object') {
+      console.log('Invalid object type:', typeof obj);
+      return false;
+    }
+    
+    // Check required fields exist (more lenient)
+    const hasNumber = obj.number && typeof obj.number === 'string';
+    const hasCategory = obj.category && typeof obj.category === 'string';
+    const hasDescription = obj.description && typeof obj.description === 'string';
+    
+    if (!hasNumber || !hasCategory || !hasDescription) {
+      console.log(`Missing required fields: ${!hasNumber ? 'number ' : ''}${!hasCategory ? 'category ' : ''}${!hasDescription ? 'description' : ''}`);
+      return false;
+    }
+    
+    // More lenient number format check (just ensure it has digits and possibly a decimal)
+    const hasDigits = /\d+/.test(obj.number);
+    if (!hasDigits) {
+      console.log('Invalid DDC number format (no digits found):', obj.number);
+      return false;
+    }
+    
+    return true;
+  } catch (e) {
+    console.error('DDC format validation error:', e);
+    return false;
+  }
+}
+
+function logClassification(text: string, result: any): void {
+  try {
+    const timestamp = new Date().toISOString();
+    const log = {
+      timestamp,
+      text: text.slice(0, 100) + (text.length > 100 ? '...' : ''),
+      number: result.number,
+      category: result.category,
+      description: result.description
+    };
+    
+    const logs = JSON.parse(localStorage.getItem('ddc_logs') || '[]');
+    logs.unshift(log);
+    if (logs.length > 1000) logs.length = 1000;
+    localStorage.setItem('ddc_logs', JSON.stringify(logs));
+  } catch (error) {
+    console.error('Classification logging error:', error);
+  }
+}
+
+function logError(error: string): void {
+  try {
+    const timestamp = new Date().toISOString();
+    const log = {
+      timestamp,
+      error,
+      context: 'DDC Classification'
+    };
+    
+    const errors = JSON.parse(localStorage.getItem('ddc_errors') || '[]');
+    errors.unshift(log);
+    if (errors.length > 1000) errors.length = 1000;
+    localStorage.setItem('ddc_errors', JSON.stringify(errors));
+  } catch (error) {
+    console.error('Error logging error:', error);
   }
 }
 
 export async function classifyText(text: string): Promise<string> {
   const client = createClient();
-  if (!client) throw new Error('Invalid or missing API key. Please check your configuration.');
-
+  if (!client) {
+    throw new Error('Invalid or missing API key. Please check your configuration.');
+  }
+  
   const provider = getProvider();
   const model = provider === 'openrouter' ? 'deepseek/deepseek-chat:free' : 'deepseek-chat';
-
+  
   try {
-    const prompt = `Analyze the following text and provide a Dewey Decimal Classification (DDC). Return ONLY a JSON object with this exact structure, no other text:
-{
-  "number": "XXX.XX",
-  "category": "Category Name",
-  "description": "Brief description"
-}
+    console.log('Classifying text:', text.slice(0, 100));
+    
+    // Improve the system prompt to be more explicit about the format
+    const systemPrompt = `You are a DDC classification expert. Analyze the text and provide a Dewey Decimal Classification.
+Always respond with a valid JSON object containing exactly these fields:
+1. "number" (in the exact format provided by the DDC system, preserving all digits and decimal places)
+2. "category" (main subject area)
+3. "description" (brief explanation)
 
-Text to analyze: ${text}`;
+Example of valid responses:
+{"number": "123.45", "category": "Philosophy", "description": "Specific philosophical concept"}
+{"number": "900", "category": "History & Geography", "description": "General history"}
+{"number": "005", "category": "Computer Programming", "description": "Computer programming resources"}
+{"number": "330.0724", "category": "Economics", "description": "Experimental economics methods"}
 
-    const response = await client.chat.completions.create({
-      model,
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a DDC classification expert. Always respond with valid JSON containing number, category, and description fields. The number must be in XXX.XX format. Do not include markdown code blocks in your response.'
-        },
-        { 
-          role: 'user', 
-          content: prompt 
+DO NOT modify the DDC number format in any way - preserve all digits and decimal places exactly as specified in the DDC system.
+DO NOT include any additional text, explanations, or markdown formatting.`;
+    
+    // Add timeout and retry logic
+    const fetchWithTimeout = async (retryCount = 0) => {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+        
+        const response = await client.chat.completions.create({
+          model,
+          messages: [
+            {
+              role: 'system',
+              content: systemPrompt
+            },
+            {
+              role: 'user',
+              content: `Analyze this text and provide a Dewey Decimal Classification:\n\n${text}`
+            }
+          ],
+          temperature: 0.4,
+          max_tokens: 200,
+          response_format: { type: 'json_object' }
+        });
+        
+        clearTimeout(timeoutId);
+        return response;
+      } catch (error) {
+        if (retryCount < 2) { // Try up to 3 times (initial + 2 retries)
+          console.log(`API request failed, retrying (${retryCount + 1}/2)...`);
+          await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds before retry
+          return fetchWithTimeout(retryCount + 1);
         }
-      ],
-      temperature: 0.3,
-      max_tokens: 400,
-      response_format: { type: 'json_object' }
-    });
-
+        throw error;
+      }
+    };
+    
+    const response = await fetchWithTimeout();
+    
     const content = response.choices[0]?.message?.content;
     if (!content) {
       throw new Error('No response received from the API');
     }
-
-    // Extract JSON from potential markdown code blocks
-    const jsonContent = extractJSON(content);
-
-    let parsed: any;
-    try {
-      parsed = JSON.parse(jsonContent);
-    } catch (e) {
-      throw new Error('Failed to parse API response as JSON');
-    }
-
-    if (!validateDDCResult(parsed)) {
-      throw new Error('Invalid DDC classification format');
-    }
-
-    // Format the DDC number
-    parsed.number = formatDDCNumber(parsed.number);
-
-    return JSON.stringify(parsed);
+    
+    console.log('Raw API response:', content);
+    
+    const result = extractDDCResult(content);
+    
+    // Log successful classification
+    logClassification(text, result);
+    
+    return JSON.stringify(result);
   } catch (error) {
+    let errorMessage = 'An unexpected error occurred';
+    
     if (error instanceof Error) {
-      if (error.message.includes('401')) {
-        throw new Error('Invalid API key. Please check your credentials.');
-      } else if (error.message.includes('429')) {
-        throw new Error('Rate limit exceeded. Please try again later.');
+      console.error('Full error object:', error);
+      
+      // Fix: Check if error.message exists and is a string before using includes()
+      if (typeof error.message === 'string') {
+        if (error.message.includes('401')) {
+          errorMessage = 'Invalid API key. Please check your credentials.';
+        } else if (error.message.includes('429')) {
+          errorMessage = 'Rate limit exceeded. Please try again later.';
+        } else if (error.message.includes('abort')) {
+          errorMessage = 'Request timed out. Please try again.';
+        } else {
+          errorMessage = error.message;
+        }
       }
-      throw error;
     }
-    throw new Error('An unexpected error occurred');
+    
+    console.error('Classification error:', errorMessage);
+    logError(errorMessage);
+    throw new Error(errorMessage);
+  }
+}
+
+// Add these helper functions for improved debugging
+export function testDDCValidation(obj: any): boolean {
+  console.log('Testing DDC validation for:', obj);
+  return isValidDDCFormat(obj);
+}
+
+export function testDDCExtraction(content: string): any {
+  console.log('Testing DDC extraction for:', content);
+  try {
+    return extractDDCResult(content);
+  } catch (e) {
+    console.error('Extraction test error:', e);
+    return null;
   }
 }

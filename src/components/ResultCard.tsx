@@ -29,6 +29,9 @@ export function ResultCard({ result, onSave }: ResultCardProps) {
     category: result.category
   };
 
+  // Display the DDC number exactly as received from the API
+  const formattedNumber = result.number;
+
   return (
     <div className="w-full p-6 bg-sky-50/90 dark:bg-sky-950/30 backdrop-blur-sm rounded-xl border border-sky-100 dark:border-sky-900/50">
       <div className="space-y-6">
@@ -37,7 +40,7 @@ export function ResultCard({ result, onSave }: ResultCardProps) {
             <div className="flex items-center space-x-3">
               <div className="flex items-center space-x-2">
                 <h3 className="text-3xl font-mono font-bold text-blue-600 dark:text-blue-400">
-                  DDC {result.number}
+                  DDC {formattedNumber}
                 </h3>
                 <button
                   onClick={handleCopy}
@@ -60,6 +63,7 @@ export function ResultCard({ result, onSave }: ResultCardProps) {
               </span>
             </div>
             <h4 className="text-xl text-gray-800 dark:text-gray-200">{result.category}</h4>
+            <p className="text-gray-600 dark:text-gray-400">{result.description}</p>
           </div>
           <button
             onClick={onSave}
