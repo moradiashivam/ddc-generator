@@ -155,35 +155,6 @@ function App() {
       <ThemeToggle />
       <Feedback />
       
-      {/* Auth Button */}
-      <div className="fixed top-4 left-4 z-50">
-        {isSignedIn && user ? (
-          <div className="flex items-center space-x-3 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-full px-4 py-2 shadow-lg">
-            <div className="flex items-center space-x-2">
-              <User className="w-5 h-5 text-gray-600 dark:text-gray-300" />
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
-                {user.user_metadata?.name || user.email}
-              </span>
-            </div>
-            <button
-              onClick={handleSignOut}
-              className="p-1 text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 transition-colors"
-              title="Sign Out"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={handleSignIn}
-            className="flex items-center space-x-2 px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-lg text-white transition-all duration-200 hover:scale-105"
-          >
-            <User className="w-5 h-5" />
-            <span>Sign In</span>
-          </button>
-        )}
-      </div>
-      
       {showGithubPopup && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 animate-slide-down">
           <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-4 rounded-xl shadow-xl backdrop-blur-sm flex items-center space-x-4">
