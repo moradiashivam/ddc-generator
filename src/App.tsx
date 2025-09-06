@@ -14,7 +14,6 @@ import { ApiDocs } from './components/ApiDocs';
 import { BulkClassification } from './components/BulkClassification';
 import { Feedback } from './components/Feedback';
 import { ExportCSV } from './components/ExportCSV';
-import { NewsletterSubscribe } from './components/NewsletterSubscribe';
 import { AuthModal } from './components/AuthModal';
 import { useTheme } from './context/ThemeContext';
 import { classifyText, getApiKey } from './lib/deepseek';
@@ -348,9 +347,6 @@ function App() {
         </a>
       </div>
 
-      <div className="max-w-3xl mx-auto px-4 mb-8">
-        <NewsletterSubscribe />
-      </div>
       <Features />
       <Footer />
 
