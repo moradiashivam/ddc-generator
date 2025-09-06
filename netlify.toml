@@ -23,4 +23,25 @@
     X-XSS-Protection = "1; mode=block"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
-    Content-Security-Policy = "default-src 'self' https://api.deepseek.com https://api.groq.com https://ai-dewey.netlify.app; img-src 'self' data: https://* blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-eval'; connect-src 'self' https://api.deepseek.com https://api.groq.com;"
+    Content-Security-Policy = "default-src 'self' https://api.deepseek.com https://api.groq.com https://openrouter.ai https://bolt.new https://*.bolt.host; img-src 'self' data: https://* blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-eval' https://bolt.new; connect-src 'self' https://api.deepseek.com https://api.groq.com https://openrouter.ai; font-src 'self' data:;"
+
+# Ensure proper MIME types for assets
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "*.js"
+  [headers.values]
+    Content-Type = "application/javascript"
+
+[[headers]]
+  for = "*.css"
+  [headers.values]
+    Content-Type = "text/css"
+
+[[headers]]
+  for = "*.json"
+  [headers.values]
+    Content-Type = "application/json"
