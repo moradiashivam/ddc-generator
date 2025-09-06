@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { X, Mail, Lock, User } from 'lucide-react';
-import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
 
 interface AuthModalProps {
@@ -8,6 +7,12 @@ interface AuthModalProps {
   onClose: () => void;
   onSuccess: () => void;
 }
+
+// Simple local authentication for demo purposes
+const DEMO_USERS = [
+  { email: 'demo@example.com', password: 'demo123', name: 'Demo User' },
+  { email: 'admin@example.com', password: 'admin123', name: 'Admin User' }
+];
 
 export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
   const [isLogin, setIsLogin] = useState(true);
@@ -24,29 +29,36 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
 
     try {
       if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-        if (error) throw error;
-        toast.success('Successfully signed in!');
+        // Simple demo authentication
+        const user = DEMO_USERS.find(u => u.email === email && u.password === password);
+        if (user) {
+          localStorage.setItem('ddc_user', JSON.stringify({
+            id: crypto.randomUUID(),
+            email: user.email,
+            name: user.name,
+            signedInAt: new Date().toISOString()
+          }));
+          toast.success('Successfully signed in!');
+          onSuccess();
+          onClose();
+        } else {
+          toast.error('Invalid credentials. Try demo@example.com / demo123');
+        }
       } else {
-        const { error } = await supabase.auth.signUp({
+        // Simple demo registration
+        const newUser = {
+          id: crypto.randomUUID(),
           email,
-          password,
-          options: {
-            data: {
-              name: name,
-            }
-          }
-        });
-        if (error) throw error;
+          name,
+          signedInAt: new Date().toISOString()
+        };
+        localStorage.setItem('ddc_user', JSON.stringify(newUser));
         toast.success('Account created successfully!');
+        onSuccess();
+        onClose();
       }
-      onSuccess();
-      onClose();
     } catch (error: any) {
-      toast.error(error.message || 'Authentication failed');
+      toast.error('Authentication failed');
     } finally {
       setIsLoading(false);
     }
@@ -130,6 +142,14 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
             {isLoading ? 'Loading...' : (isLogin ? 'Sign In' : 'Sign Up')}
           </button>
         </form>
+
+        {isLogin && (
+          <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+            <p className="text-sm text-blue-700 dark:text-blue-300">
+              Demo credentials: demo@example.com / demo123
+            </p>
+          </div>
+        )}
 
         <div className="mt-6 text-center">
           <button

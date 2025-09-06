@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { MessageSquareQuote, Upload, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { supabase } from '../lib/supabase';
+import { saveTestimonial } from '../lib/testimonials';
 
 export function TestimonialSubmit() {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -72,11 +72,7 @@ export function TestimonialSubmit() {
 
     setIsSubmitting(true);
     try {
-      const { error } = await supabase
-        .from('testimonials')
-        .insert([formData]);
-
-      if (error) throw error;
+      await saveTestimonial(formData);
 
       toast.success('Thank you for your testimonial!');
       setFormData({

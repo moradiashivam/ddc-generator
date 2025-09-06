@@ -9,16 +9,14 @@ import {
 } from '@tanstack/react-table';
 import { Database, Download, Search, ArrowUpDown, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { supabase } from '../../lib/supabase';
+import { getClassificationLogs } from '../../lib/storage';
 
 interface Classification {
   id: string;
-  input_text: string;
-  ddc_number: string;
+  inputText: string;
+  number: string;
   category: string;
-  created_at: string;
-  confidence_score: number;
-  user_id: string;
+  timestamp: number;
 }
 
 const columnHelper = createColumnHelper<Classification>();
@@ -35,13 +33,15 @@ export function Classifications() {
 
   const fetchClassifications = async () => {
     try {
-      const { data, error } = await supabase
-        .from('classifications')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setClassifications(data || []);
+      const logs = getClassificationLogs();
+      const classifications = logs.map(log => ({
+        id: log.id,
+        inputText: log.inputText,
+        number: log.number,
+        category: log.category,
+        timestamp: log.timestamp
+      }));
+      setClassifications(classifications);
     } catch (error) {
       console.error('Error fetching classifications:', error);
       toast.error('Failed to load classifications');
@@ -51,7 +51,7 @@ export function Classifications() {
   };
 
   const columns = [
-    columnHelper.accessor('input_text', {
+    columnHelper.accessor('inputText', {
       header: 'Input Text',
       cell: (info) => (
         <div className="max-w-xs truncate" title={info.getValue()}>
@@ -59,7 +59,7 @@ export function Classifications() {
         </div>
       )
     }),
-    columnHelper.accessor('ddc_number', {
+    columnHelper.accessor('number', {
       header: 'DDC Number',
       cell: (info) => (
         <span className="font-mono text-blue-600 dark:text-blue-400">
@@ -70,21 +70,7 @@ export function Classifications() {
     columnHelper.accessor('category', {
       header: 'Category'
     }),
-    columnHelper.accessor('confidence_score', {
-      header: 'Confidence',
-      cell: (info) => (
-        <div className="flex items-center space-x-2">
-          <div className="w-16 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-green-500"
-              style={{ width: `${info.getValue() * 100}%` }}
-            />
-          </div>
-          <span>{Math.round(info.getValue() * 100)}%</span>
-        </div>
-      )
-    }),
-    columnHelper.accessor('created_at', {
+    columnHelper.accessor('timestamp', {
       header: ({ column }) => (
         <button
           onClick={() => column.toggleSorting()}
@@ -94,14 +80,16 @@ export function Classifications() {
           <ArrowUpDown className="w-4 h-4" />
         </button>
       ),
-      cell: (info) => new Date(info.getValue()).toLocaleString()
+      cell: (info) => (
+        <span>{new Date(info.getValue()).toLocaleString()}</span>
+      )
     })
   ];
 
   const filteredData = classifications.filter(classification =>
-    classification.input_text.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    classification.inputText.toLowerCase().includes(searchTerm.toLowerCase()) ||
     classification.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    classification.ddc_number.includes(searchTerm)
+    classification.number.includes(searchTerm)
   );
 
   const table = useReactTable({
@@ -118,13 +106,12 @@ export function Classifications() {
   const handleExport = () => {
     try {
       const csv = [
-        ['Input Text', 'DDC Number', 'Category', 'Confidence', 'Date'],
+        ['Input Text', 'DDC Number', 'Category', 'Date'],
         ...classifications.map(c => [
-          c.input_text,
-          c.ddc_number,
+          c.inputText,
+          c.number,
           c.category,
-          `${Math.round(c.confidence_score * 100)}%`,
-          new Date(c.created_at).toLocaleString()
+          new Date(c.timestamp).toLocaleString()
         ])
       ].map(row => row.join(',')).join('\n');
 

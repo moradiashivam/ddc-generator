@@ -1,23 +1,9 @@
-import { createClient } from '@supabase/supabase-js';
+// Supabase functionality removed
+// This file is kept for compatibility but all functions are now no-ops
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables');
-}
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = null;
 
 export async function subscribeToNewsletter(email: string): Promise<void> {
-  const { error } = await supabase
-    .from('subscribers')
-    .insert([{ email }]);
-
-  if (error) {
-    if (error.code === '23505') { // Unique violation
-      throw new Error('This email is already subscribed to our newsletter');
-    }
-    throw new Error('Failed to subscribe. Please try again later.');
-  }
+  // Newsletter subscription removed - Supabase dependency eliminated
+  throw new Error('Newsletter subscription is currently unavailable');
 }

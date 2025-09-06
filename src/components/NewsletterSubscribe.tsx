@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Mail, Loader2, CheckCircle } from 'lucide-react';
-import { subscribeToNewsletter } from '../lib/supabase';
 import toast from 'react-hot-toast';
 
 export function NewsletterSubscribe() {
@@ -14,7 +13,14 @@ export function NewsletterSubscribe() {
 
     setIsLoading(true);
     try {
-      await subscribeToNewsletter(email);
+      // Store newsletter subscription locally
+      const subscribers = JSON.parse(localStorage.getItem('newsletter_subscribers') || '[]');
+      if (subscribers.includes(email)) {
+        throw new Error('This email is already subscribed');
+      }
+      subscribers.push(email);
+      localStorage.setItem('newsletter_subscribers', JSON.stringify(subscribers));
+      
       setIsSuccess(true);
       toast.success('Successfully subscribed to newsletter!');
       setEmail('');

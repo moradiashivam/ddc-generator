@@ -9,14 +9,10 @@ import {
 } from '@tanstack/react-table';
 import { Mail, Download, Search, ArrowUpDown, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { supabase } from '../../lib/supabase';
 
 interface Subscriber {
-  id: string;
   email: string;
-  subscribed: boolean;
-  created_at: string;
-  updated_at: string;
+  subscribedAt: number;
 }
 
 const columnHelper = createColumnHelper<Subscriber>();
@@ -33,13 +29,17 @@ export function Newsletter() {
 
   const fetchSubscribers = async () => {
     try {
-      const { data, error } = await supabase
-        .from('subscribers')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setSubscribers(data || []);
+      const stored = localStorage.getItem('newsletter_subscribers');
+      if (stored) {
+        const emails = JSON.parse(stored);
+        const subscribers = emails.map((email: string) => ({
+          email,
+          subscribedAt: Date.now() // Mock timestamp
+        }));
+        setSubscribers(subscribers);
+      } else {
+        setSubscribers([]);
+      }
     } catch (error) {
       console.error('Error fetching subscribers:', error);
       toast.error('Failed to load subscribers');
@@ -60,19 +60,7 @@ export function Newsletter() {
         </button>
       )
     }),
-    columnHelper.accessor('subscribed', {
-      header: 'Status',
-      cell: (info) => (
-        <span className={`px-2 py-1 rounded-full text-sm ${
-          info.getValue()
-            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-            : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
-        }`}>
-          {info.getValue() ? 'Active' : 'Inactive'}
-        </span>
-      )
-    }),
-    columnHelper.accessor('created_at', {
+    columnHelper.accessor('subscribedAt', {
       header: ({ column }) => (
         <button
           onClick={() => column.toggleSorting()}
@@ -82,7 +70,7 @@ export function Newsletter() {
           <ArrowUpDown className="w-4 h-4" />
         </button>
       ),
-      cell: (info) => new Date(info.getValue()).toLocaleString()
+      cell: (info) => new Date(info.getValue()).toLocaleDateString()
     })
   ];
 
@@ -104,11 +92,10 @@ export function Newsletter() {
   const handleExport = () => {
     try {
       const csv = [
-        ['Email', 'Status', 'Subscribed Date'],
+        ['Email', 'Subscribed Date'],
         ...subscribers.map(s => [
           s.email,
-          s.subscribed ? 'Active' : 'Inactive',
-          new Date(s.created_at).toLocaleString()
+          new Date(s.subscribedAt).toLocaleString()
         ])
       ].map(row => row.join(',')).join('\n');
 
@@ -171,31 +158,21 @@ export function Newsletter() {
         <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
           <p className="text-sm text-gray-600 dark:text-gray-400">Active Subscribers</p>
           <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-            {subscribers.filter(s => s.subscribed).length}
+            {subscribers.length}
           </p>
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
           <p className="text-sm text-gray-600 dark:text-gray-400">Last 7 Days</p>
           <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-            {subscribers.filter(s => {
-              const date = new Date(s.created_at);
-              const now = new Date();
-              const diff = now.getTime() - date.getTime();
-              return diff <= 7 * 24 * 60 * 60 * 1000;
-            }).length}
+            0
           </p>
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
           <p className="text-sm text-gray-600 dark:text-gray-400">Last 30 Days</p>
           <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-            {subscribers.filter(s => {
-              const date = new Date(s.created_at);
-              const now = new Date();
-              const diff = now.getTime() - date.getTime();
-              return diff <= 30 * 24 * 60 * 60 * 1000;
-            }).length}
+            0
           </p>
         </div>
       </div>

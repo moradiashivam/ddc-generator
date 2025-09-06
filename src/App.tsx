@@ -20,7 +20,6 @@ import { AuthModal } from './components/AuthModal';
 import { useTheme } from './context/ThemeContext';
 import { classifyText, getApiKey } from './lib/deepseek';
 import { saveClassificationLog } from './lib/storage';
-import { supabase } from './lib/supabase';
 import type { DDCResult, HistoryItem, ErrorState } from './types';
 import toast from 'react-hot-toast';
 
@@ -51,36 +50,14 @@ function App() {
     text: 'Check out this amazing DDC Number Generator that uses AI to classify library materials!'
   };
 
-  // Check authentication status on mount
+  // Check local authentication status on mount
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          setUser(session.user);
-          setIsSignedIn(true);
-        }
-      } catch (error) {
-        console.error('Error checking auth:', error);
-      }
-    };
-
-    checkAuth();
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (session?.user) {
-          setUser(session.user);
-          setIsSignedIn(true);
-        } else {
-          setUser(null);
-          setIsSignedIn(false);
-        }
-      }
-    );
-
-    return () => subscription.unsubscribe();
+    const storedUser = localStorage.getItem('ddc_user');
+    if (storedUser) {
+      const userData = JSON.parse(storedUser);
+      setUser(userData);
+      setIsSignedIn(true);
+    }
   }, []);
 
   useEffect(() => {
@@ -155,7 +132,9 @@ function App() {
 
   const handleSignOut = async () => {
     try {
-      await supabase.auth.signOut();
+      localStorage.removeItem('ddc_user');
+      setUser(null);
+      setIsSignedIn(false);
       toast.success('Signed out successfully');
     } catch (error) {
       toast.error('Failed to sign out');
@@ -163,6 +142,12 @@ function App() {
   };
 
   const handleAuthSuccess = () => {
+    const storedUser = localStorage.getItem('ddc_user');
+    if (storedUser) {
+      const userData = JSON.parse(storedUser);
+      setUser(userData);
+      setIsSignedIn(true);
+    }
     setShowAuthModal(false);
   };
 

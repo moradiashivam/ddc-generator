@@ -6,15 +6,15 @@ An AI-powered Dewey Decimal Classification (DDC) number generator built with Rea
 
 ## 🚀 Features
 
-- 🤖 AI-powered DDC classification using DeepSeek API
-- 🔐 User authentication with Clerk
-- 📊 Classification history tracking with Supabase
+- 🤖 AI-powered DDC classification using DeepSeek or OpenRouter API
+- 🔐 Simple local user authentication
+- 📊 Classification history tracking with local storage
 - 🎯 High accuracy classifications with confidence scores
 - 📱 Responsive design with Tailwind CSS
 - 🌓 Dark/Light mode support
 - 🔍 Bulk classification support
 - 🎤 Voice input support
-- 📈 Admin dashboard with analytics
+- 📈 Local admin dashboard with analytics
 - 💬 Testimonials system
 - 📧 Newsletter subscription
 - 📊 CSV/Excel export capabilities
@@ -24,8 +24,8 @@ An AI-powered Dewey Decimal Classification (DDC) number generator built with Rea
 - **Frontend Framework**: React 18 with TypeScript
 - **Build Tool**: Vite
 - **Styling**: Tailwind CSS
-- **Authentication**: Clerk
-- **Database**: Supabase (PostgreSQL)
+- **Authentication**: Local storage based
+- **Database**: Local storage
 - **State Management**: React Context
 - **Icons**: Lucide React
 - **Charts**: Chart.js with react-chartjs-2
@@ -58,9 +58,7 @@ Before you begin, ensure you have the following installed:
 3. Set up environment variables:
    Create a `.env` file in the root directory with the following variables:
    ```env
-   VITE_CLERK_PUBLISHABLE_KEY=your_clerk_key
-   VITE_SUPABASE_URL=your_supabase_url
-   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+   # No environment variables needed for local storage version
    ```
 
 4. Start the development server:
@@ -80,78 +78,43 @@ ddc-generator/
 │   ├── lib/           # Utility functions and API clients
 │   ├── pages/         # Page components and routes
 │   └── types/         # TypeScript type definitions
-├── supabase/
-│   └── migrations/    # Database migration files
 ├── public/           # Static assets
 └── package.json      # Project dependencies
 ```
 
 ## 🔐 Authentication
 
-The application uses Clerk for authentication with the following features:
-- Email/password authentication
-- User profile management
-- Admin role management
-- Session handling
+The application uses local storage for simple authentication with the following features:
+- Demo email/password authentication
+- Local user profile storage
+- Session management
+- Demo credentials: demo@example.com / demo123
 
-## 💾 Database Schema
+## 💾 Data Storage
 
-### Classifications Table
-```sql
-CREATE TABLE classifications (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  input_text text NOT NULL,
-  ddc_number text NOT NULL,
-  category text NOT NULL,
-  confidence_score float DEFAULT 1.0,
-  user_id uuid REFERENCES auth.users(id),
-  created_at timestamptz DEFAULT now()
-);
-```
-
-### Testimonials Table
-```sql
-CREATE TABLE testimonials (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  name text NOT NULL,
-  designation text NOT NULL,
-  text text NOT NULL,
-  image text NOT NULL,
-  "order" integer DEFAULT 0,
-  created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now()
-);
-```
-
-### Subscribers Table
-```sql
-CREATE TABLE subscribers (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  email text UNIQUE NOT NULL,
-  subscribed boolean DEFAULT true,
-  created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now()
-);
-```
+All data is stored locally in the browser using localStorage:
+- **Classifications**: User classification history
+- **Testimonials**: User testimonials and reviews
+- **Newsletter**: Email subscriptions
+- **User Data**: Authentication and profile information
 
 ## 👥 User Roles
 
-- **Public Users**: Can view the application and submit testimonials
+- **Public Users**: Can view the application, submit testimonials, and try demo features
 - **Authenticated Users**: Can generate DDC classifications and maintain history
-- **Admin**: Full access to dashboard, user management, and content management
+- **Admin**: Access to local admin dashboard and content management
 
 ## 🔒 Security Features
 
-- Row Level Security (RLS) in Supabase
-- JWT-based authentication
-- Environment variable protection
+- Local data storage (no external database)
+- Simple authentication system
 - CORS configuration
 - Content Security Policy headers
 
 ## 📊 Admin Dashboard
 
 The admin dashboard provides:
-- User management
+- Local user management
 - Classification analytics
 - Testimonial management
 - Newsletter subscriber management
@@ -178,21 +141,14 @@ The application is configured for deployment on Netlify:
 
 ## 📝 API Documentation
 
-The application provides a RESTful API for DDC classification:
+The application provides DDC classification using AI APIs:
 
 ```typescript
-// Example API call
-const response = await fetch(`${SUPABASE_URL}/rest/v1/classifications`, {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-  },
-  body: JSON.stringify({
-    input_text: 'Text to classify',
-    user_id: 'authenticated_user_id'
-  })
-});
+// Example classification
+import { classifyText } from './lib/deepseek';
+
+const result = await classifyText('Introduction to Computer Programming');
+console.log(JSON.parse(result)); // { number: "005.1", category: "Programming", description: "..." }
 ```
 
 ## 🤝 Contributing
@@ -217,8 +173,7 @@ St. Xavier's College (Autonomous) Ahmedabad
 
 - Project Mentor: Dr. Meghna Vyas
 - Built with [React](https://reactjs.org/)
-- Authentication by [Clerk](https://clerk.dev/)
-- Database by [Supabase](https://supabase.com/)
+- AI APIs by [DeepSeek](https://deepseek.com/) and [OpenRouter](https://openrouter.ai/)
 - Icons from [Lucide](https://lucide.dev/)
 - Styling with [Tailwind CSS](https://tailwindcss.com/)
 
