@@ -15,7 +15,6 @@ import { BulkClassification } from './components/BulkClassification';
 import { Feedback } from './components/Feedback';
 import { ExportCSV } from './components/ExportCSV';
 import { NewsletterSubscribe } from './components/NewsletterSubscribe';
-import { TestimonialSlider } from './components/TestimonialSlider';
 import { AuthModal } from './components/AuthModal';
 import { useTheme } from './context/ThemeContext';
 import { classifyText, getApiKey } from './lib/deepseek';
@@ -353,7 +352,6 @@ function App() {
         <NewsletterSubscribe />
       </div>
       <Features />
-      <TestimonialSlider />
       <Footer />
 
       {/* Auth Modal */}
